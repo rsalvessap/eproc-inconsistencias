@@ -30,11 +30,12 @@ Isso é necessário para o Tampermonkey rodar o script sem bloqueio.
 
 ## Instalação
 
-1. Clique no ícone do Tampermonkey → **Criar novo script**
-2. Apague o conteúdo padrão e cole o conteúdo do arquivo `eproc-inconsistencias.user.js`
-3. Salve com **Ctrl + S**
-4. Acesse: `https://eproc1g.tjsp.jus.br/eproc/controlador.php?acao=ProcessoInconsistente/consultar`
-5. A HUD aparecerá automaticamente no canto inferior direito da tela
+👉 [Clique aqui para instalar o script](https://raw.githubusercontent.com/rsalvessap/eproc-scripts-gerais/master/eproc-inconsistencias/eproc-inconsistencias.user.js)
+
+O Tampermonkey abrirá automaticamente a tela de confirmação — clique em **Instalar**.
+
+Após instalar, acesse a página de inconsistências no eProc e a HUD aparecerá automaticamente no canto inferior direito:
+`https://eproc1g.tjsp.jus.br/eproc/controlador.php?acao=ProcessoInconsistente/consultar`
 
 ---
 

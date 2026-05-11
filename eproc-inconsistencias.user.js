@@ -1,14 +1,16 @@
 // ==UserScript==
 // @name         eProc Inconsistências Automation
-// @namespace    eproc-tjsp
+// @namespace    https://github.com/rsalvessap/eproc-scripts-gerais
 // @version      1.0
 // @description  Bulk automation for "Inconsistências do Processo" - removes duplicate entries
-// @author       Helpdesk Automation
+// @author       rsalvessap
 // @match        https://eproc1g.tjsp.jus.br/eproc/controlador.php*
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        unsafeWindow
 // @run-at       document-start
+// @downloadURL  https://raw.githubusercontent.com/rsalvessap/eproc-scripts-gerais/master/eproc-inconsistencias/eproc-inconsistencias.user.js
+// @updateURL    https://raw.githubusercontent.com/rsalvessap/eproc-scripts-gerais/master/eproc-inconsistencias/eproc-inconsistencias.user.js
 // ==/UserScript==
 
 (function () {

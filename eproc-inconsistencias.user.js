@@ -4,8 +4,10 @@
 // @version      1.1
 // @description  Bulk automation for "Inconsistências do Processo" - removes duplicate entries
 // @author       rsalvessap
-// @match        https://eproc1g.tjsp.jus.br/eproc/controlador.php*
-// @match        https://eproc2g.tjsp.jus.br/eproc/controlador.php*
+// @include      *://eproc*.tjsp.jus.br/eproc/controlador.php*
+// @include      *://*-1g-*.tjsp.jus.br/eproc/controlador.php*
+// @include      *://*-2g-*.tjsp.jus.br/eproc/controlador.php*
+// @include      *://sso-*.tjsc.jus.br/eproc/controlador.php*
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        unsafeWindow
@@ -24,7 +26,7 @@
         QUEUE_KEY: 'eproc_inconsistencias_queue',
         LOG_RETENTION_DAYS: 7,
         ACTION_DELAY_MS: 1500,
-        INCONSISTENCIAS_URL: 'https://eproc1g.tjsp.jus.br/eproc/controlador.php?acao=ProcessoInconsistente/consultar'
+        get INCONSISTENCIAS_URL() { return `${window.location.origin}/eproc/controlador.php?acao=ProcessoInconsistente/consultar`; }
     };
 
     const DUPLICATE_TYPES = ['Justiça Gratuita', 'Litisconsórcio Passivo'];

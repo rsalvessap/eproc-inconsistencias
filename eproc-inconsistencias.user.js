@@ -1,13 +1,15 @@
 // ==UserScript==
 // @name         eProc Inconsistências Automation
 // @namespace    https://github.com/rsalvessap/eproc-scripts-gerais
-// @version      1.0
+// @version      1.1
 // @description  Bulk automation for "Inconsistências do Processo" - removes duplicate entries
 // @author       rsalvessap
 // @match        https://eproc1g.tjsp.jus.br/eproc/controlador.php*
+// @match        https://eproc2g.tjsp.jus.br/eproc/controlador.php*
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        unsafeWindow
+// @require      https://raw.githubusercontent.com/rsalvessap/eproc-scripts-gerais/master/shared/eproc-utils.js
 // @run-at       document-start
 // ==/UserScript==
 
@@ -814,7 +816,13 @@
                 startBtn.disabled = true;
                 stopBtn.disabled = false;
                 input.disabled = true;
-                status.innerHTML = `<span class="processing-indicator">⏳ Processando ${progress.current}/${progress.total}</span><br>` +
+                const utils = typeof EprocUtils !== 'undefined' ? EprocUtils : null;
+                const barHTML = utils
+                    ? utils.progressBarHTML(progress.current, progress.total)
+                    : `<div style="font-size:11px;color:#a0aec0">${progress.current}/${progress.total}</div>`;
+                status.innerHTML =
+                    `<span class="processing-indicator">⏳ Processando ${progress.current}/${progress.total}</span>` +
+                    barHTML +
                     `<strong>${progress.currentCase}</strong><br>` +
                     `Removidas: ${progress.removed} | Etapa: ${progress.step}`;
             } else {
@@ -853,38 +861,33 @@
                 return;
             }
 
-            let text = '═══════════════════════════════════════════════════════════════\n';
-            text += '           RELATÓRIO DE INCONSISTÊNCIAS - eProc TJSP\n';
-            text += `           Gerado em: ${new Date().toLocaleString('pt-BR')}\n`;
-            text += '═══════════════════════════════════════════════════════════════\n\n';
+            const utils = typeof EprocUtils !== 'undefined' ? EprocUtils : null;
+            const dateTag = new Date().toISOString().slice(0, 10);
 
-            entries.forEach(entry => {
-                const date = new Date(entry.timestamp).toLocaleString('pt-BR');
-                const statusLabel = {
-                    success: '✅ CORRIGIDO',
-                    info: 'ℹ️ SEM DUPLICATAS',
-                    error: '❌ ERRO'
-                }[entry.status] || entry.status;
+            // CSV export
+            const csvRows = [
+                ['Processo', 'Data', 'Status', 'Mensagem', 'Removidas'],
+                ...entries.map(e => [
+                    e.caseNumber,
+                    new Date(e.timestamp).toLocaleString('pt-BR'),
+                    { success: 'CORRIGIDO', info: 'SEM DUPLICATAS', error: 'ERRO' }[e.status] || e.status,
+                    e.message,
+                    e.removed || 0
+                ])
+            ];
 
-                text += `📋 ${entry.caseNumber}\n`;
-                text += `   Data: ${date}\n`;
-                text += `   Status: ${statusLabel}\n`;
-                text += `   ${entry.message}\n`;
-                if (entry.removed > 0) {
-                    text += `   Removidas: ${entry.removed}\n`;
-                }
-                text += '───────────────────────────────────────────────────────────────\n';
-            });
-
-            text += `\nTotal: ${entries.length} processo(s)\n`;
-
-            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `inconsistencias_log_${new Date().toISOString().slice(0, 10)}.txt`;
-            a.click();
-            URL.revokeObjectURL(url);
+            if (utils) {
+                utils.downloadCSV(csvRows, `inconsistencias_${dateTag}.csv`);
+            } else {
+                // Fallback manual se shared/ não carregou
+                const escape = cell => `"${String(cell).replace(/"/g, '""')}"`;
+                const content = csvRows.map(r => r.map(escape).join(',')).join('\r\n');
+                const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+                const url  = URL.createObjectURL(blob);
+                const a    = document.createElement('a');
+                a.href = url; a.download = `inconsistencias_${dateTag}.csv`; a.click();
+                URL.revokeObjectURL(url);
+            }
         });
 
         // Clear log
@@ -941,8 +944,6 @@
             hudControls.renderLog();
             hudControls.updateUI();
             console.log('[eProc Inconsistencias] HUD initialized, queue active:', resumed);
-        } else if (isDesativarResultPage()) {
-            console.log('[eProc Inconsistencias] On desativar result page, redirecting...');
         } else {
             console.log('[eProc Inconsistencias] Not on relevant page');
         }

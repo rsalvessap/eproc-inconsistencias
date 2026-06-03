@@ -551,44 +551,47 @@
                     position: fixed;
                     bottom: 20px;
                     right: 20px;
-                    width: 380px;
-                    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-                    border: 1px solid #4a5568;
-                    border-radius: 12px;
-                    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-                    font-family: 'Segoe UI', Tahoma, sans-serif;
+                    width: 390px;
+                    background: #ffffff;
+                    border: 1px solid #b0b8c4;
+                    border-radius: 4px;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+                    font-family: Arial, 'Segoe UI', sans-serif;
                     font-size: 13px;
-                    color: #e2e8f0;
+                    color: #333333;
                     z-index: 99999;
                     overflow: hidden;
                 }
                 #inconsistencias-hud-header {
-                    background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
-                    padding: 12px 15px;
-                    font-weight: 600;
-                    font-size: 14px;
+                    background: #1a3a6c;
+                    padding: 10px 14px;
+                    font-weight: bold;
+                    font-size: 13px;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
                     cursor: move;
+                    color: #ffffff;
                 }
                 #inconsistencias-hud-header span {
                     display: flex;
                     align-items: center;
-                    gap: 8px;
+                    gap: 6px;
                 }
                 #inconsistencias-hud-toggle {
                     background: rgba(255,255,255,0.2);
-                    border: none;
+                    border: 1px solid rgba(255,255,255,0.4);
                     color: white;
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 4px;
+                    width: 22px;
+                    height: 22px;
+                    border-radius: 3px;
                     cursor: pointer;
                     font-size: 14px;
+                    line-height: 1;
                 }
                 #inconsistencias-hud-body {
-                    padding: 15px;
+                    padding: 12px;
+                    background: #f5f7fa;
                 }
                 #inconsistencias-hud-body.collapsed {
                     display: none;
@@ -596,11 +599,11 @@
                 #inconsistencias-input {
                     width: 100%;
                     height: 80px;
-                    background: #2d3748;
-                    border: 1px solid #4a5568;
-                    border-radius: 6px;
-                    color: #e2e8f0;
-                    padding: 10px;
+                    background: #ffffff;
+                    border: 1px solid #aab0bb;
+                    border-radius: 3px;
+                    color: #333333;
+                    padding: 8px;
                     font-family: 'Consolas', monospace;
                     font-size: 12px;
                     resize: vertical;
@@ -608,66 +611,75 @@
                 }
                 #inconsistencias-input:focus {
                     outline: none;
-                    border-color: #f5576c;
+                    border-color: #1a3a6c;
+                    box-shadow: 0 0 0 2px rgba(26,58,108,0.15);
                 }
                 #inconsistencias-input::placeholder {
-                    color: #718096;
+                    color: #999999;
                 }
                 #inconsistencias-controls {
                     display: flex;
-                    gap: 8px;
-                    margin-top: 10px;
+                    gap: 6px;
+                    margin-top: 8px;
                 }
                 .incons-btn {
                     flex: 1;
-                    padding: 10px;
+                    padding: 7px 10px;
                     border: none;
-                    border-radius: 6px;
+                    border-radius: 3px;
                     cursor: pointer;
-                    font-weight: 600;
-                    font-size: 13px;
-                    transition: all 0.2s;
+                    font-weight: bold;
+                    font-size: 12px;
+                    transition: opacity 0.15s;
                 }
                 .incons-btn:disabled {
-                    opacity: 0.5;
+                    opacity: 0.45;
                     cursor: not-allowed;
                 }
                 .incons-btn-primary {
-                    background: linear-gradient(90deg, #48bb78 0%, #38a169 100%);
+                    background: #2e7031;
                     color: white;
                 }
                 .incons-btn-primary:hover:not(:disabled) {
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+                    background: #256027;
                 }
                 .incons-btn-danger {
-                    background: linear-gradient(90deg, #f56565 0%, #e53e3e 100%);
+                    background: #b71c1c;
                     color: white;
+                }
+                .incons-btn-danger:hover:not(:disabled) {
+                    background: #9a1717;
                 }
                 .incons-btn-secondary {
-                    background: #4a5568;
+                    background: #546e7a;
                     color: white;
                 }
+                .incons-btn-secondary:hover:not(:disabled) {
+                    background: #455a64;
+                }
                 #inconsistencias-status {
-                    margin-top: 12px;
-                    padding: 10px;
-                    background: #2d3748;
-                    border-radius: 6px;
+                    margin-top: 10px;
+                    padding: 8px 10px;
+                    background: #ffffff;
+                    border: 1px solid #c8d0db;
+                    border-radius: 3px;
                     text-align: center;
                     font-size: 12px;
+                    color: #444444;
                 }
                 #inconsistencias-log {
-                    margin-top: 12px;
+                    margin-top: 10px;
                     max-height: 200px;
                     overflow-y: auto;
-                    background: #0d1117;
-                    border-radius: 6px;
-                    padding: 8px;
+                    background: #ffffff;
+                    border: 1px solid #c8d0db;
+                    border-radius: 3px;
+                    padding: 6px;
                 }
                 .incons-log-entry {
-                    padding: 8px 10px;
-                    margin-bottom: 6px;
-                    border-radius: 4px;
+                    padding: 6px 8px;
+                    margin-bottom: 5px;
+                    border-radius: 2px;
                     font-size: 11px;
                     border-left: 3px solid;
                 }
@@ -675,44 +687,45 @@
                     margin-bottom: 0;
                 }
                 .incons-log-entry.success {
-                    background: rgba(72, 187, 120, 0.15);
-                    border-color: #48bb78;
+                    background: #edf7ee;
+                    border-color: #2e7031;
                 }
                 .incons-log-entry.info {
-                    background: rgba(66, 153, 225, 0.15);
-                    border-color: #4299e1;
+                    background: #e8f0fb;
+                    border-color: #1a3a6c;
                 }
                 .incons-log-entry.error {
-                    background: rgba(245, 101, 101, 0.15);
-                    border-color: #f56565;
+                    background: #fdecea;
+                    border-color: #b71c1c;
                 }
                 .incons-log-entry-header {
                     display: flex;
                     justify-content: space-between;
-                    margin-bottom: 4px;
+                    margin-bottom: 3px;
                 }
                 .incons-log-entry-case {
                     font-family: 'Consolas', monospace;
-                    font-weight: 600;
+                    font-weight: bold;
+                    color: #222222;
                 }
                 .incons-log-entry-time {
-                    color: #718096;
+                    color: #888888;
                     font-size: 10px;
                 }
                 .incons-log-entry-details {
-                    color: #a0aec0;
+                    color: #555555;
                 }
                 #inconsistencias-footer {
                     display: flex;
-                    gap: 8px;
-                    margin-top: 12px;
-                    padding-top: 12px;
-                    border-top: 1px solid #4a5568;
+                    gap: 6px;
+                    margin-top: 10px;
+                    padding-top: 10px;
+                    border-top: 1px solid #c8d0db;
                 }
                 #inconsistencias-count {
-                    color: #718096;
+                    color: #888888;
                     font-size: 11px;
-                    margin-top: 8px;
+                    margin-top: 6px;
                 }
                 .processing-indicator {
                     animation: pulse 1.5s infinite;
@@ -723,7 +736,7 @@
                 }
             </style>
             <div id="inconsistencias-hud-header">
-                <span>🔧 Inconsistências Bulk</span>
+                <span>Inconsistências — Correção em Lote</span>
                 <button id="inconsistencias-hud-toggle">−</button>
             </div>
             <div id="inconsistencias-hud-body">

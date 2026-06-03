@@ -12,7 +12,7 @@
 // @grant        GM_setValue
 // @grant        unsafeWindow
 // @require      https://cdn.jsdelivr.net/gh/rsalvessap/eproc-scripts-gerais@master/shared/eproc-utils.js
-// @run-at       document-start
+// @run-at       document-idle
 // ==/UserScript==
 
 (function () {

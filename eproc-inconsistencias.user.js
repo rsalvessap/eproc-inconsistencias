@@ -9,7 +9,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        unsafeWindow
-// @require      https://raw.githubusercontent.com/rsalvessap/eproc-scripts-gerais/master/shared/eproc-utils.js
+// @require      https://cdn.jsdelivr.net/gh/rsalvessap/eproc-scripts-gerais@master/shared/eproc-utils.js
 // @run-at       document-start
 // ==/UserScript==
 

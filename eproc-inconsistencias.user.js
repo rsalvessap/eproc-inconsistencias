@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         eProc Inconsistências Automation
-// @namespace    https://github.com/rsalvessap/eproc-scripts-gerais
+// @namespace    https://github.com/rsalvessap/eproc-inconsistencias
 // @version      1.1
 // @description  Bulk automation for "Inconsistências do Processo" - removes duplicate entries
 // @author       rsalvessap

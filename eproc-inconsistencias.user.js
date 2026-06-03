@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         eProc Inconsistências Automation
 // @namespace    https://github.com/rsalvessap/eproc-inconsistencias
-// @version      1.2
+// @version      1.3
 // @description  Bulk automation for "Inconsistências do Processo" - removes duplicate entries
 // @author       rsalvessap
 // @updateURL    https://cdn.jsdelivr.net/gh/rsalvessap/eproc-inconsistencias@master/eproc-inconsistencias.user.js
@@ -552,35 +552,25 @@
         hud.innerHTML = `
             <style>
                 #inconsistencias-hud {
-                    position: fixed;
-                    bottom: 20px;
-                    right: 20px;
-                    width: 390px;
+                    display: block;
+                    margin: 0 0 16px 0;
                     background: #ffffff;
-                    border: 1px solid #b0b8c4;
+                    border: 1px solid #ccc;
                     border-radius: 4px;
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
-                    font-family: Arial, 'Segoe UI', sans-serif;
+                    font-family: Arial, sans-serif;
                     font-size: 13px;
                     color: #333333;
-                    z-index: 99999;
-                    overflow: hidden;
                 }
                 #inconsistencias-hud-header {
-                    background: #1a3a6c;
+                    background: #0d47a1;
                     padding: 10px 14px;
                     font-weight: bold;
                     font-size: 13px;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    cursor: move;
                     color: #ffffff;
-                }
-                #inconsistencias-hud-header span {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
+                    border-radius: 3px 3px 0 0;
                 }
                 #inconsistencias-hud-toggle {
                     background: rgba(255,255,255,0.2);
@@ -595,16 +585,35 @@
                 }
                 #inconsistencias-hud-body {
                     padding: 12px;
-                    background: #f5f7fa;
+                    background: #e3f2fd;
                 }
                 #inconsistencias-hud-body.collapsed {
                     display: none;
                 }
+                #inconsistencias-columns {
+                    display: flex;
+                    gap: 12px;
+                    align-items: flex-start;
+                }
+                #inconsistencias-left {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    min-width: 0;
+                }
+                #inconsistencias-right {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    min-width: 0;
+                }
                 #inconsistencias-input {
                     width: 100%;
-                    height: 80px;
+                    height: 120px;
                     background: #ffffff;
-                    border: 1px solid #aab0bb;
+                    border: 1px solid #aaa;
                     border-radius: 3px;
                     color: #333333;
                     padding: 8px;
@@ -615,8 +624,8 @@
                 }
                 #inconsistencias-input:focus {
                     outline: none;
-                    border-color: #1a3a6c;
-                    box-shadow: 0 0 0 2px rgba(26,58,108,0.15);
+                    border-color: #0d47a1;
+                    box-shadow: 0 0 0 2px rgba(13,71,161,0.15);
                 }
                 #inconsistencias-input::placeholder {
                     color: #999999;
@@ -624,7 +633,6 @@
                 #inconsistencias-controls {
                     display: flex;
                     gap: 6px;
-                    margin-top: 8px;
                 }
                 .incons-btn {
                     flex: 1;
@@ -641,18 +649,18 @@
                     cursor: not-allowed;
                 }
                 .incons-btn-primary {
-                    background: #2e7031;
+                    background: #2e7d32;
                     color: white;
                 }
                 .incons-btn-primary:hover:not(:disabled) {
                     background: #256027;
                 }
                 .incons-btn-danger {
-                    background: #b71c1c;
+                    background: #c62828;
                     color: white;
                 }
                 .incons-btn-danger:hover:not(:disabled) {
-                    background: #9a1717;
+                    background: #a31f1f;
                 }
                 .incons-btn-secondary {
                     background: #546e7a;
@@ -662,21 +670,20 @@
                     background: #455a64;
                 }
                 #inconsistencias-status {
-                    margin-top: 10px;
                     padding: 8px 10px;
                     background: #ffffff;
-                    border: 1px solid #c8d0db;
+                    border: 1px solid #ccc;
                     border-radius: 3px;
                     text-align: center;
                     font-size: 12px;
                     color: #444444;
                 }
                 #inconsistencias-log {
-                    margin-top: 10px;
-                    max-height: 200px;
+                    flex: 1;
+                    max-height: 260px;
                     overflow-y: auto;
                     background: #ffffff;
-                    border: 1px solid #c8d0db;
+                    border: 1px solid #ccc;
                     border-radius: 3px;
                     padding: 6px;
                 }
@@ -692,15 +699,15 @@
                 }
                 .incons-log-entry.success {
                     background: #edf7ee;
-                    border-color: #2e7031;
+                    border-color: #2e7d32;
                 }
                 .incons-log-entry.info {
-                    background: #e8f0fb;
-                    border-color: #1a3a6c;
+                    background: #e3f2fd;
+                    border-color: #0d47a1;
                 }
                 .incons-log-entry.error {
                     background: #fdecea;
-                    border-color: #b71c1c;
+                    border-color: #c62828;
                 }
                 .incons-log-entry-header {
                     display: flex;
@@ -722,14 +729,10 @@
                 #inconsistencias-footer {
                     display: flex;
                     gap: 6px;
-                    margin-top: 10px;
-                    padding-top: 10px;
-                    border-top: 1px solid #c8d0db;
                 }
                 #inconsistencias-count {
                     color: #888888;
                     font-size: 11px;
-                    margin-top: 6px;
                 }
                 .processing-indicator {
                     animation: pulse 1.5s infinite;
@@ -744,24 +747,33 @@
                 <button id="inconsistencias-hud-toggle">−</button>
             </div>
             <div id="inconsistencias-hud-body">
-                <textarea id="inconsistencias-input" placeholder="Cole números de processo aqui (um por linha)&#10;Ex: 0000268-76.2025.8.26.0358"></textarea>
-                <div id="inconsistencias-controls">
-                    <button id="inconsistencias-start" class="incons-btn incons-btn-primary">▶ Iniciar</button>
-                    <button id="inconsistencias-stop" class="incons-btn incons-btn-danger" disabled>⏹ Parar</button>
+                <div id="inconsistencias-columns">
+                    <div id="inconsistencias-left">
+                        <textarea id="inconsistencias-input" placeholder="Cole números de processo aqui (um por linha)&#10;Ex: 0000268-76.2025.8.26.0358"></textarea>
+                        <div id="inconsistencias-controls">
+                            <button id="inconsistencias-start" class="incons-btn incons-btn-primary">▶ Iniciar</button>
+                            <button id="inconsistencias-stop" class="incons-btn incons-btn-danger" disabled>⏹ Parar</button>
+                        </div>
+                        <div id="inconsistencias-status">Aguardando entrada...</div>
+                    </div>
+                    <div id="inconsistencias-right">
+                        <div id="inconsistencias-log"></div>
+                        <div id="inconsistencias-footer">
+                            <button id="inconsistencias-export" class="incons-btn incons-btn-secondary">📥 Exportar Log</button>
+                            <button id="inconsistencias-clear" class="incons-btn incons-btn-secondary">🗑️ Limpar</button>
+                        </div>
+                        <div id="inconsistencias-count"></div>
+                    </div>
                 </div>
-                <div id="inconsistencias-status">Aguardando entrada...</div>
-                <div id="inconsistencias-log"></div>
-                <div id="inconsistencias-footer">
-                    <button id="inconsistencias-export" class="incons-btn incons-btn-secondary">📥 Exportar Log</button>
-                    <button id="inconsistencias-clear" class="incons-btn incons-btn-secondary">🗑️ Limpar</button>
-                </div>
-                <div id="inconsistencias-count"></div>
             </div>
         `;
 
-
-
-        document.body.appendChild(hud);
+        const container = document.querySelector('#divInfraAreaTelaD')
+            || document.querySelector('#divInfraConteudoForm')
+            || document.querySelector('#divInfraConteudo')
+            || document.querySelector('.infraAreaTelaD')
+            || document.body;
+        container.insertBefore(hud, container.firstChild);
 
         // Elements
         const toggle = hud.querySelector('#inconsistencias-hud-toggle');
@@ -919,31 +931,6 @@
         // Initial render
         renderLog();
         updateUI();
-
-        // Make draggable
-        let isDragging = false;
-        let offsetX, offsetY;
-        const header = hud.querySelector('#inconsistencias-hud-header');
-
-        header.addEventListener('mousedown', (e) => {
-            if (e.target === toggle) return;
-            isDragging = true;
-            offsetX = e.clientX - hud.offsetLeft;
-            offsetY = e.clientY - hud.offsetTop;
-            hud.style.transition = 'none';
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            hud.style.left = (e.clientX - offsetX) + 'px';
-            hud.style.top = (e.clientY - offsetY) + 'px';
-            hud.style.right = 'auto';
-            hud.style.bottom = 'auto';
-        });
-
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-        });
 
         return { renderLog, updateUI, status };
     }

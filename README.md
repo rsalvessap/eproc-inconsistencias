@@ -2,6 +2,8 @@
 
 Userscript para automação em lote da correção de inconsistências duplicadas nos processos do eProc do TJSP. Detecta e remove automaticamente entradas duplicadas de **Justiça Gratuita** e **Litisconsórcio Passivo** na tela de "Inconsistências do Processo".
 
+**Versão atual:** 1.1
+
 ---
 
 ## Pré-requisitos
@@ -16,15 +18,6 @@ Isso é necessário para o Tampermonkey rodar o script sem bloqueio.
 
 - Vá em **Configurações → Extensões**
 - No canto superior direito, ative **Modo do desenvolvedor**
-
-### 3. Configurações do Tampermonkey
-
-- Clique no ícone do Tampermonkey → **Painel** → **Configurações**
-- Confirme que estas opções estão ativas:
-  - Permitir scripts de usuário
-  - Permitir acesso a abas
-  - Permitir requisições remotas
-  - Modo estrito desativado *(se existir no seu navegador)*
 
 ---
 
@@ -48,7 +41,9 @@ O Tampermonkey abrirá automaticamente a tela de confirmação — clique em **I
 6. Salve com `Ctrl + S`
 
 Após instalar, acesse a página de inconsistências no eProc e a HUD aparecerá automaticamente no canto inferior direito:
-`https://eproc1g.tjsp.jus.br/eproc/controlador.php?acao=ProcessoInconsistente/consultar`
+
+- `https://eproc1g.tjsp.jus.br/eproc/controlador.php?acao=ProcessoInconsistente/consultar`
+- `https://eproc2g.tjsp.jus.br/eproc/controlador.php?acao=ProcessoInconsistente/consultar`
 
 ---
 
@@ -81,8 +76,19 @@ Não é necessário interagir com a página durante o processamento.
 |---|---|
 | Iniciar | Inicia o processamento em lote |
 | Parar | Interrompe o processamento |
-| Exportar Log | Baixa o relatório em `.txt` |
+| Exportar Log | Baixa o relatório em `.csv` |
 | Limpar | Remove os registros do log local |
+
+---
+
+## HUD
+
+A HUD exibe em tempo real:
+
+- Barra de progresso com percentual concluído
+- Contador de processos (concluídos / total)
+- Taxa de velocidade (processos por minuto)
+- Log das últimas operações
 
 ---
 
@@ -106,10 +112,10 @@ Cada processo processado é registrado no log com um dos seguintes status:
 | ℹ️ Sem duplicatas | Processo sem inconsistências detectadas |
 | ❌ Erro | Duplicata encontrada, mas sem botão de desativar disponível |
 
-O log é exportado em formato `.txt` com o relatório completo:
+O log é exportado em formato `.csv`:
 
 ```
-inconsistencias_log_2025-05-11.txt
+inconsistencias_log_2025-05-11.csv
 ```
 
 Os registros são mantidos por **7 dias** automaticamente.
@@ -118,6 +124,6 @@ Os registros são mantidos por **7 dias** automaticamente.
 
 ## Observações
 
-- O script sobrescreve `window.confirm` durante o processamento para confirmar automaticamente os diálogos do eProc
 - O estado da fila é salvo entre recarregamentos de página — se a aba fechar durante o processamento, o script retoma do ponto onde parou ao retornar à página
 - Tipos de inconsistência tratados: **Justiça Gratuita** e **Litisconsórcio Passivo**
+- Compatível com eproc1g e eproc2g

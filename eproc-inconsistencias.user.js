@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         eProc Inconsistências Automation
 // @namespace    https://github.com/rsalvessap/eproc-inconsistencias
-// @version      1.4
+// @version      1.5
 // @description  Bulk automation for "Inconsistências do Processo" - removes duplicate entries
 // @author       rsalvessap
 // @updateURL    https://cdn.jsdelivr.net/gh/rsalvessap/eproc-inconsistencias@master/eproc-inconsistencias.user.js
@@ -547,274 +547,210 @@
     // HUD COMPONENT
     // ═══════════════════════════════════════════════════════════════════════════
     function createHUD() {
-        const hud = document.createElement('div');
-        hud.id = 'inconsistencias-hud';
-        hud.innerHTML = `
+        const shadowHost = document.createElement('div');
+        Object.assign(shadowHost.style, { display: 'block', width: '100%', marginBottom: '16px' });
+        const shadow = shadowHost.attachShadow({ mode: 'open' });
+        shadow.innerHTML = `
             <style>
+                :host { display: block; width: 100%; }
+                *, *::before, *::after { box-sizing: border-box; font-family: Arial, sans-serif; }
+
                 #inconsistencias-hud {
-                    display: block !important;
-                    width: 100% !important;
-                    margin: 0 0 16px 0 !important;
-                    background: #ffffff !important;
-                    border: 1px solid #ccc !important;
-                    border-radius: 4px !important;
-                    font-family: Arial, sans-serif !important;
-                    font-size: 13px !important;
-                    color: #333333 !important;
-                    box-sizing: border-box !important;
+                    background: #fff;
+                    border: 1px solid #CBD6E5;
+                    border-radius: 2px;
+                    font-size: 13px;
+                    color: #333;
                 }
-                #inconsistencias-hud * {
-                    box-sizing: border-box;
-                    font-family: Arial, sans-serif;
+
+                #hud-header {
+                    background: #2168B5;
+                    color: #fff;
+                    padding: 0 12px;
+                    height: 34px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    font-weight: bold;
+                    font-size: 13px;
                 }
-                #inconsistencias-hud button {
-                    display: inline-block !important;
-                    visibility: visible !important;
-                }
-                #inconsistencias-hud-header {
-                    background: #1565c0 !important;
-                    padding: 10px 14px !important;
-                    font-weight: bold !important;
-                    font-size: 13px !important;
-                    display: flex !important;
-                    justify-content: space-between !important;
-                    align-items: center !important;
-                    color: #ffffff !important;
-                    border-radius: 3px 3px 0 0 !important;
-                }
+
                 #inconsistencias-hud-toggle {
-                    background: rgba(255,255,255,0.2) !important;
-                    border: 1px solid rgba(255,255,255,0.4) !important;
-                    color: white !important;
-                    width: 22px !important;
-                    height: 22px !important;
-                    border-radius: 3px !important;
-                    cursor: pointer !important;
-                    font-size: 14px !important;
-                    line-height: 1 !important;
-                    padding: 0 !important;
+                    background: none;
+                    border: 1px solid rgba(255,255,255,0.5);
+                    color: #fff;
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 2px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    padding: 0;
+                    line-height: 1;
                 }
-                #inconsistencias-hud-body {
-                    padding: 12px !important;
-                    background: #e3f2fd !important;
+
+                #inconsistencias-hud-body { padding: 8px; }
+                #inconsistencias-hud-body.collapsed { display: none; }
+
+                #hud-columns {
+                    display: flex;
+                    gap: 8px;
+                    margin-bottom: 8px;
                 }
-                #inconsistencias-hud-body.collapsed {
-                    display: none !important;
+
+                #hud-left, #hud-right { flex: 1; }
+
+                .section-title {
+                    color: #2168B5;
+                    font-size: 11px;
+                    font-weight: bold;
+                    text-transform: uppercase;
+                    margin-bottom: 4px;
+                    display: block;
                 }
-                #inconsistencias-columns {
-                    display: flex !important;
-                    gap: 12px !important;
-                    align-items: stretch !important;
-                    width: 100% !important;
+
+                .section-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 4px;
                 }
-                #inconsistencias-left {
-                    flex: 1 1 0 !important;
-                    width: 50% !important;
-                    display: flex !important;
-                    flex-direction: column !important;
-                    gap: 8px !important;
-                    min-width: 0 !important;
-                }
-                #inconsistencias-right {
-                    flex: 1 1 0 !important;
-                    width: 50% !important;
-                    display: flex !important;
-                    flex-direction: column !important;
-                    gap: 6px !important;
-                    min-width: 0 !important;
-                }
-                #inconsistencias-log-header {
-                    font-weight: bold !important;
-                    font-size: 11px !important;
-                    text-transform: uppercase !important;
-                    letter-spacing: 0.3px !important;
-                    color: #1565c0 !important;
-                    padding-bottom: 5px !important;
-                    border-bottom: 1px solid #ccc !important;
-                    display: block !important;
-                }
+
+                .section-actions { display: flex; gap: 4px; }
+
                 #inconsistencias-input {
-                    width: 100% !important;
-                    height: 150px !important;
-                    background: #ffffff !important;
-                    border: 1px solid #aaa !important;
-                    border-radius: 3px !important;
-                    color: #333333 !important;
-                    padding: 8px !important;
-                    font-family: 'Consolas', monospace !important;
-                    font-size: 12px !important;
-                    resize: vertical !important;
-                    display: block !important;
+                    width: 100%;
+                    height: 100px;
+                    background: #fff;
+                    border: 1px solid #ccc;
+                    padding: 6px;
+                    font-family: Consolas, monospace;
+                    font-size: 11px;
+                    resize: vertical;
+                    color: #333;
+                    display: block;
                 }
-                #inconsistencias-input:focus {
-                    outline: none !important;
-                    border-color: #1565c0 !important;
-                    box-shadow: 0 0 0 2px rgba(21,101,192,0.15) !important;
-                }
-                #inconsistencias-input::placeholder {
-                    color: #999999 !important;
-                }
-                #inconsistencias-controls {
-                    display: flex !important;
-                    gap: 6px !important;
-                }
-                .incons-btn {
-                    padding: 7px 12px !important;
-                    border: none !important;
-                    border-radius: 3px !important;
-                    cursor: pointer !important;
-                    font-weight: bold !important;
-                    font-size: 12px !important;
-                    display: inline-block !important;
-                    visibility: visible !important;
-                    text-align: center !important;
-                    line-height: normal !important;
-                }
-                #inconsistencias-controls .incons-btn {
-                    flex: 1 !important;
-                }
-                .incons-btn:disabled {
-                    opacity: 0.5 !important;
-                    cursor: not-allowed !important;
-                }
-                .incons-btn-primary {
-                    background: #2e7d32 !important;
-                    color: white !important;
-                }
-                .incons-btn-primary:hover:not(:disabled) {
-                    background: #256027 !important;
-                }
-                .incons-btn-danger {
-                    background: #c62828 !important;
-                    color: white !important;
-                }
-                .incons-btn-danger:hover:not(:disabled) {
-                    background: #a31f1f !important;
-                }
-                .incons-btn-secondary {
-                    background: #546e7a !important;
-                    color: white !important;
-                }
-                .incons-btn-secondary:hover:not(:disabled) {
-                    background: #455a64 !important;
-                }
-                #inconsistencias-status {
-                    padding: 8px 10px !important;
-                    background: #ffffff !important;
-                    border: 1px solid #ccc !important;
-                    border-radius: 3px !important;
-                    text-align: center !important;
-                    font-size: 12px !important;
-                    color: #444444 !important;
-                    display: block !important;
-                }
+
+                #inconsistencias-input:focus { outline: none; border-color: #2168B5; }
+
+                #inconsistencias-input::placeholder { color: #999; }
+
                 #inconsistencias-log {
-                    flex: 1 !important;
-                    min-height: 150px !important;
-                    max-height: 260px !important;
-                    overflow-y: auto !important;
-                    background: #ffffff !important;
-                    border: 1px solid #ccc !important;
-                    border-radius: 3px !important;
-                    padding: 6px !important;
-                    display: block !important;
+                    height: 100px;
+                    overflow-y: auto;
+                    background: #fff;
+                    border: 1px solid #ccc;
+                    padding: 4px 6px;
+                    font-size: 11px;
                 }
-                .incons-log-empty {
-                    color: #aaa !important;
-                    font-size: 11px !important;
-                    text-align: center !important;
-                    padding: 20px 0 !important;
-                }
+
+                .log-empty { color: #bbb; font-size: 11px; text-align: center; padding: 28px 0; }
+
                 .incons-log-entry {
-                    padding: 6px 8px !important;
-                    margin-bottom: 5px !important;
-                    border-radius: 2px !important;
-                    font-size: 11px !important;
-                    border-left: 3px solid !important;
-                    display: block !important;
+                    padding: 3px 0;
+                    border-bottom: 1px solid #f0f0f0;
+                    font-size: 11px;
+                    display: flex;
+                    gap: 6px;
+                    align-items: baseline;
                 }
-                .incons-log-entry:last-child {
-                    margin-bottom: 0 !important;
+                .incons-log-entry:last-child { border-bottom: none; }
+                .incons-log-entry.error .incons-log-entry-details { color: #a94442; }
+
+                .incons-log-entry-time { color: #999; white-space: nowrap; }
+                .incons-log-entry-case { font-family: Consolas, monospace; font-weight: bold; color: #222; white-space: nowrap; }
+                .incons-log-entry-details { color: #555; flex: 1; }
+
+                #inconsistencias-count { font-size: 10px; color: #888; text-align: right; margin-top: 2px; }
+
+                .btn-action {
+                    background: #F8F8F8;
+                    border: 1px solid #ccc;
+                    color: #333;
+                    padding: 2px 8px;
+                    font-size: 11px;
+                    border-radius: 2px;
+                    cursor: pointer;
+                    white-space: nowrap;
                 }
-                .incons-log-entry.success {
-                    background: #edf7ee !important;
-                    border-color: #2e7d32 !important;
+                .btn-action:hover { background: #e8e8e8; }
+
+                #hud-controls { display: flex; gap: 8px; margin-bottom: 8px; }
+
+                .incons-btn {
+                    height: 30px;
+                    padding: 0 16px;
+                    font-size: 12px;
+                    font-weight: bold;
+                    border-radius: 2px;
+                    cursor: pointer;
+                    min-width: 90px;
                 }
-                .incons-log-entry.info {
-                    background: #e3f2fd !important;
-                    border-color: #1565c0 !important;
+                .incons-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+                .incons-btn-primary { background: #337AB7; border: 1px solid #2E6DA4; color: #fff; }
+                .incons-btn-primary:hover:not(:disabled) { background: #286090; }
+
+                .incons-btn-danger { background: #F8F8F8; border: 1px solid #ccc; color: #333; }
+                .incons-btn-danger:hover:not(:disabled) { background: #e8e8e8; }
+
+                .incons-btn-secondary { background: #F8F8F8; border: 1px solid #ccc; color: #333; }
+                .incons-btn-secondary:hover:not(:disabled) { background: #e8e8e8; }
+
+                .alert-info {
+                    background: #E7F3FE;
+                    border: 1px solid #B3D7FF;
+                    color: #31708F;
+                    min-height: 28px;
+                    display: flex;
+                    align-items: center;
+                    padding: 4px 10px;
+                    font-size: 12px;
+                    border-radius: 2px;
+                    gap: 6px;
                 }
-                .incons-log-entry.error {
-                    background: #fdecea !important;
-                    border-color: #c62828 !important;
-                }
-                .incons-log-entry-header {
-                    display: flex !important;
-                    justify-content: space-between !important;
-                    margin-bottom: 3px !important;
-                }
-                .incons-log-entry-case {
-                    font-family: 'Consolas', monospace !important;
-                    font-weight: bold !important;
-                    color: #222222 !important;
-                }
-                .incons-log-entry-time {
-                    color: #888888 !important;
-                    font-size: 10px !important;
-                }
-                .incons-log-entry-details {
-                    color: #555555 !important;
-                }
-                #inconsistencias-footer {
-                    display: flex !important;
-                    gap: 6px !important;
-                }
-                #inconsistencias-count {
-                    color: #888888 !important;
-                    font-size: 11px !important;
-                    display: block !important;
-                }
-                .processing-indicator {
-                    animation: pulse 1.5s infinite;
-                }
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.5; }
-                }
+
+                .processing-indicator { animation: pulse 1.5s infinite; }
+                @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
             </style>
-            <div id="inconsistencias-hud-header">
+            <div id="inconsistencias-hud">
+              <div id="hud-header">
                 <span>Inconsistências — Correção em Lote</span>
-                <button id="inconsistencias-hud-toggle">−</button>
-            </div>
-            <div id="inconsistencias-hud-body">
-                <div id="inconsistencias-columns">
-                    <div id="inconsistencias-left">
-                        <textarea id="inconsistencias-input" placeholder="Cole números de processo aqui (um por linha)&#10;Ex: 0000268-76.2025.8.26.0358"></textarea>
-                        <div id="inconsistencias-controls">
-                            <button id="inconsistencias-start" class="incons-btn incons-btn-primary">▶ Iniciar</button>
-                            <button id="inconsistencias-stop" class="incons-btn incons-btn-danger" disabled>⏹ Parar</button>
-                        </div>
-                        <div id="inconsistencias-status">Aguardando entrada...</div>
+                <button id="inconsistencias-hud-toggle" title="Minimizar">−</button>
+              </div>
+              <div id="inconsistencias-hud-body">
+                <div id="hud-columns">
+                  <div id="hud-left">
+                    <span class="section-title">PROCESSOS</span>
+                    <textarea id="inconsistencias-input" placeholder="Cole números de processo aqui (um por linha)&#10;&#10;Ex:&#10;0000268-76.2025.8.26.0358"></textarea>
+                  </div>
+                  <div id="hud-right">
+                    <div class="section-header">
+                      <span class="section-title">HISTÓRICO</span>
+                      <div class="section-actions">
+                        <button id="inconsistencias-export" class="btn-action">↓ Exportar</button>
+                        <button id="inconsistencias-clear" class="btn-action">🗑 Limpar</button>
+                      </div>
                     </div>
-                    <div id="inconsistencias-right">
-                        <span id="inconsistencias-log-header">Histórico</span>
-                        <div id="inconsistencias-log"><div class="incons-log-empty">Nenhum registro ainda</div></div>
-                        <div id="inconsistencias-count"></div>
-                        <div id="inconsistencias-footer">
-                            <button id="inconsistencias-export" class="incons-btn incons-btn-secondary">📥 Exportar</button>
-                            <button id="inconsistencias-clear" class="incons-btn incons-btn-secondary">🗑️ Limpar</button>
-                        </div>
-                    </div>
+                    <div id="inconsistencias-log"><div class="log-empty">Nenhum registro ainda</div></div>
+                    <div id="inconsistencias-count"></div>
+                  </div>
                 </div>
+                <div id="hud-controls">
+                  <button id="inconsistencias-start" class="incons-btn incons-btn-primary">▶ Iniciar</button>
+                  <button id="inconsistencias-stop" class="incons-btn incons-btn-danger" disabled>■ Parar</button>
+                </div>
+                <div id="inconsistencias-status" class="alert-info">ℹ Aguardando entrada...</div>
+              </div>
             </div>
         `;
+        const hud = shadow.querySelector('#inconsistencias-hud');
 
         const container = document.querySelector('#divInfraAreaTelaD')
             || document.querySelector('#divInfraConteudoForm')
             || document.querySelector('#divInfraConteudo')
             || document.querySelector('.infraAreaTelaD')
             || document.body;
-        container.insertBefore(hud, container.firstChild);
+        container.insertBefore(shadowHost, container.firstChild);
 
         // Elements
         const toggle = hud.querySelector('#inconsistencias-hud-toggle');
@@ -853,7 +789,7 @@
         function renderLog() {
             const entries = Storage.cleanup();
             if (entries.length === 0) {
-                log.innerHTML = '<div class="incons-log-empty">Nenhum registro ainda</div>';
+                log.innerHTML = '<div class="log-empty">Nenhum registro ainda</div>';
                 return;
             }
             log.innerHTML = '';
@@ -871,11 +807,9 @@
                 });
 
                 div.innerHTML = `
-                    <div class="incons-log-entry-header">
-                        <span class="incons-log-entry-case">${entry.caseNumber}</span>
-                        <span class="incons-log-entry-time">${timeStr}</span>
-                    </div>
-                    <div class="incons-log-entry-details">${entry.message}</div>
+                    <span class="incons-log-entry-time">${timeStr}</span>
+                    <span class="incons-log-entry-case">${entry.caseNumber}</span>
+                    <span class="incons-log-entry-details">${entry.message}</span>
                 `;
                 log.appendChild(div);
             });

@@ -4,8 +4,8 @@
 // @version      1.5
 // @description  Bulk automation for "Inconsistências do Processo" - removes duplicate entries
 // @author       rsalvessap
-// @updateURL    https://cdn.jsdelivr.net/gh/rsalvessap/eproc-inconsistencias@master/eproc-inconsistencias.user.js
-// @downloadURL  https://cdn.jsdelivr.net/gh/rsalvessap/eproc-inconsistencias@master/eproc-inconsistencias.user.js
+// @updateURL    https://raw.githubusercontent.com/rsalvessap/eproc-inconsistencias/master/eproc-inconsistencias.user.js
+// @downloadURL  https://raw.githubusercontent.com/rsalvessap/eproc-inconsistencias/master/eproc-inconsistencias.user.js
 // @include      *://eproc*.tjsp.jus.br/eproc/controlador.php*
 // @include      *://*-1g-*.tjsp.jus.br/eproc/controlador.php*
 // @include      *://*-2g-*.tjsp.jus.br/eproc/controlador.php*

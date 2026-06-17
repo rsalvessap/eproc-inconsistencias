@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         eProc Inconsistências Automation
 // @namespace    https://github.com/rsalvessap/eproc-inconsistencias
-// @version      1.5
+// @version      1.6
 // @description  Bulk automation for "Inconsistências do Processo" - removes duplicate entries
 // @author       rsalvessap
 // @updateURL    https://raw.githubusercontent.com/rsalvessap/eproc-inconsistencias/master/eproc-inconsistencias.user.js
@@ -55,8 +55,7 @@
     // ═══════════════════════════════════════════════════════════════════════════
     function isInconsistenciasPage() {
         const params = new URLSearchParams(window.location.search);
-        const acao = params.get('acao');
-        return acao === 'ProcessoInconsistente/consultar';
+        return params.get('acao') === 'ProcessoInconsistente/consultar';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -64,75 +63,47 @@
     // ═══════════════════════════════════════════════════════════════════════════
     const Storage = {
         loadLog() {
-            try {
-                const data = GM_getValue(CONFIG.STORAGE_KEY, '[]');
-                return JSON.parse(data);
-            } catch (e) {
-                console.error('Failed to load log:', e);
-                return [];
-            }
+            try { return JSON.parse(GM_getValue(CONFIG.STORAGE_KEY, '[]')); }
+            catch (e) { console.error('Failed to load log:', e); return []; }
         },
-
-        saveLog(entries) {
-            GM_setValue(CONFIG.STORAGE_KEY, JSON.stringify(entries));
-        },
-
+        saveLog(entries) { GM_setValue(CONFIG.STORAGE_KEY, JSON.stringify(entries)); },
         addEntry(entry) {
             const entries = this.loadLog();
             entries.unshift(entry);
             this.saveLog(entries);
             return entries;
         },
-
         cleanup() {
             const entries = this.loadLog();
             const cutoff = Date.now() - (CONFIG.LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
             const filtered = entries.filter(e => e.timestamp > cutoff);
-            if (filtered.length !== entries.length) {
-                this.saveLog(filtered);
-            }
+            if (filtered.length !== entries.length) this.saveLog(filtered);
             return filtered;
         },
-
-        clearLog() {
-            this.saveLog([]);
-        },
-
+        clearLog() { this.saveLog([]); },
         loadQueue() {
-            try {
-                const data = GM_getValue(CONFIG.QUEUE_KEY, 'null');
-                return JSON.parse(data);
-            } catch (e) {
-                return null;
-            }
+            try { return JSON.parse(GM_getValue(CONFIG.QUEUE_KEY, 'null')); }
+            catch (e) { return null; }
         },
-
-        saveQueue(queue) {
-            GM_setValue(CONFIG.QUEUE_KEY, JSON.stringify(queue));
-        },
-
-        clearQueue() {
-            GM_setValue(CONFIG.QUEUE_KEY, 'null');
-        }
+        saveQueue(queue) { GM_setValue(CONFIG.QUEUE_KEY, JSON.stringify(queue)); },
+        clearQueue() { GM_setValue(CONFIG.QUEUE_KEY, 'null'); }
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
     // RESULT TYPES
     // ═══════════════════════════════════════════════════════════════════════════
     const ResultType = {
-        FIXED: 'success',      // Green - duplicates removed
-        OK: 'info',            // Blue - no duplicates found
-        ERROR: 'error',        // Red - case not found or error
-        PENDING: 'pending'     // Still processing
+        FIXED:   'success',
+        OK:      'info',
+        ERROR:   'error',
+        PENDING: 'pending'
     };
 
-    // Helper: Click the Voltar button (uses the button's built-in onclick which has the correct URL with hash)
     function clickVoltar() {
         const btn = document.querySelector('button.btn-secondary');
         if (btn && btn.textContent.includes('Voltar')) {
             btn.click();
         } else {
-            // Fallback: reload page
             window.location.reload();
         }
     }
@@ -141,50 +112,22 @@
     // DUPLICATE DETECTOR
     // ═══════════════════════════════════════════════════════════════════════════
     function analyzeDuplicates() {
-        const results = {
-            hasDuplicates: false,
-            duplicateCards: [],
-            allGreen: true
-        };
+        const results = { hasDuplicates: false, duplicateCards: [], allGreen: true };
 
-        // Find all card headers
-        const cardHeaders = document.querySelectorAll('.card-header');
+        document.querySelectorAll('.card-header').forEach(header => {
+            if (header.textContent.trim() !== 'Informações Adicionais Duplicadas') return;
 
-        cardHeaders.forEach(header => {
-            const title = header.textContent.trim();
-
-            // Check if this is a duplicate info card
-            if (title === 'Informações Adicionais Duplicadas') {
-                const isDanger = header.classList.contains('bg-danger');
-                const isSuccess = header.classList.contains('bg-success');
-
-                if (isDanger) {
-                    results.allGreen = false;
-
-                    // Find the associated table
-                    const cardBody = header.nextElementSibling;
-                    if (cardBody) {
-                        const table = cardBody.querySelector('table');
-                        if (table) {
-                            const rows = table.querySelectorAll('tbody tr:not(.odd):not(.even)').length === 0
-                                ? table.querySelectorAll('tbody tr')
-                                : table.querySelectorAll('tbody tr');
-
-                            // Check if there are actual data rows (not "Nenhum registro")
-                            const dataRows = Array.from(rows).filter(row =>
-                                !row.querySelector('.dataTables_empty')
-                            );
-
-                            if (dataRows.length > 1) {
-                                results.hasDuplicates = true;
-                                results.duplicateCards.push({
-                                    header: header,
-                                    table: table,
-                                    rows: dataRows
-                                });
-                            }
-                        }
-                    }
+            if (header.classList.contains('bg-danger')) {
+                results.allGreen = false;
+                const cardBody = header.nextElementSibling;
+                if (!cardBody) return;
+                const table = cardBody.querySelector('table');
+                if (!table) return;
+                const rows = table.querySelectorAll('tbody tr');
+                const dataRows = Array.from(rows).filter(row => !row.querySelector('.dataTables_empty'));
+                if (dataRows.length > 1) {
+                    results.hasDuplicates = true;
+                    results.duplicateCards.push({ header, table, rows: dataRows });
                 }
             }
         });
@@ -193,75 +136,38 @@
     }
 
     function findRowToRemove(rows) {
-        // Priority: Remove "Requerida" entries first, keep "Deferida" or system entries
-        // Also prefer removing user entries over "SISTEMA DE PROCESSO ELETRÔNICO"
-
+        // Priority 1: Remove "Requerida" entries
         for (const row of rows) {
             const cells = row.querySelectorAll('td');
             if (cells.length < 5) continue;
-
             const descricao = cells[0].textContent.trim();
-            const valor = cells[1].textContent.trim();
-            const usuario = cells[4].textContent.trim();
-
-            // Check if this is a known duplicate type
+            const valor     = cells[1].textContent.trim();
             if (!DUPLICATE_TYPES.includes(descricao)) continue;
-
-            // Prefer removing "Requerida" over "Deferida"
             if (valor === 'Requerida') {
-                const desativarLink = row.querySelector('a.btnDesativar');
-                if (desativarLink) {
-                    return {
-                        row: row,
-                        link: desativarLink,
-                        descricao: descricao,
-                        valor: valor,
-                        usuario: usuario
-                    };
-                }
+                const link = row.querySelector('a.btnDesativar');
+                if (link) return { row, link, descricao, valor, usuario: cells[4].textContent.trim() };
             }
         }
-
-        // If no "Requerida" found, look for user entries (not SISTEMA)
+        // Priority 2: Remove user (non-system) entries
         for (const row of rows) {
             const cells = row.querySelectorAll('td');
             if (cells.length < 5) continue;
-
             const descricao = cells[0].textContent.trim();
-            const usuario = cells[4].textContent.trim();
-
+            const usuario   = cells[4].textContent.trim();
             if (!DUPLICATE_TYPES.includes(descricao)) continue;
-
-            // Remove user entry, keep system entry
             if (!usuario.includes('SISTEMA DE PROCESSO ELETRÔNICO')) {
-                const desativarLink = row.querySelector('a.btnDesativar');
-                if (desativarLink) {
-                    return {
-                        row: row,
-                        link: desativarLink,
-                        descricao: descricao,
-                        valor: cells[1].textContent.trim(),
-                        usuario: usuario
-                    };
-                }
+                const link = row.querySelector('a.btnDesativar');
+                if (link) return { row, link, descricao, valor: cells[1].textContent.trim(), usuario };
             }
         }
-
-        // Last resort: just remove the first one with a desativar link
+        // Fallback: first available
         for (const row of rows) {
-            const desativarLink = row.querySelector('a.btnDesativar');
-            if (desativarLink) {
+            const link = row.querySelector('a.btnDesativar');
+            if (link) {
                 const cells = row.querySelectorAll('td');
-                return {
-                    row: row,
-                    link: desativarLink,
-                    descricao: cells[0]?.textContent.trim() || 'Unknown',
-                    valor: cells[1]?.textContent.trim() || 'Unknown',
-                    usuario: cells[4]?.textContent.trim() || 'Unknown'
-                };
+                return { row, link, descricao: cells[0]?.textContent.trim() || 'Unknown', valor: cells[1]?.textContent.trim() || 'Unknown', usuario: cells[4]?.textContent.trim() || 'Unknown' };
             }
         }
-
         return null;
     }
 
@@ -270,20 +176,18 @@
     // ═══════════════════════════════════════════════════════════════════════════
     const Automation = {
         parseInput(text) {
-            // Input is already filtered to digits + newlines
-            // Split by newlines, take 20-digit lines, format them
             return text
                 .split(/\n/)
                 .map(line => line.trim())
                 .filter(line => line.length === 20)
-                .map(d => `${d.slice(0, 7)}-${d.slice(7, 9)}.${d.slice(9, 13)}.${d.slice(13, 14)}.${d.slice(14, 16)}.${d.slice(16, 20)}`);
+                .map(d => `${d.slice(0,7)}-${d.slice(7,9)}.${d.slice(9,13)}.${d.slice(13,14)}.${d.slice(14,16)}.${d.slice(16,20)}`);
         },
 
         startBatch(caseNumbers) {
             const queue = {
                 cases: caseNumbers,
                 currentIndex: 0,
-                currentStep: 'consultar', // 'consultar', 'fixing', 'done'
+                currentStep: 'consultar',
                 results: {},
                 removedCount: 0,
                 startedAt: Date.now()
@@ -292,27 +196,16 @@
             this.executeNext(queue);
         },
 
-        stop() {
-            Storage.clearQueue();
-        },
+        stop() { Storage.clearQueue(); },
 
         resumeIfNeeded() {
             const queue = Storage.loadQueue();
             if (!queue) return false;
-
-            // Only process on the inconsistencias page
-            if (!isInconsistenciasPage()) {
-                console.log('[Inconsistencias] Not on inconsistencias page, ignoring');
-                return false;
-            }
+            if (!isInconsistenciasPage()) return false;
 
             const currentCase = queue.cases[queue.currentIndex];
-            console.log('[Inconsistencias] Resuming...', {
-                step: queue.currentStep,
-                case: currentCase
-            });
+            console.log('[Inconsistencias] Resuming...', { step: queue.currentStep, case: currentCase });
 
-            // Execute based on current step
             if (queue.currentStep === 'consultar') {
                 this.doConsultar(queue, currentCase);
             } else if (queue.currentStep === 'fixing') {
@@ -323,11 +216,7 @@
 
         doConsultar(queue, caseNumber) {
             const input = document.getElementById('NumProcesso');
-            if (!input) {
-                console.error('[Inconsistencias] Input not found, reloading...');
-                window.location.reload();
-                return;
-            }
+            if (!input) { window.location.reload(); return; }
 
             input.value = caseNumber;
             input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -338,195 +227,120 @@
             setTimeout(() => {
                 const button = document.querySelector('button.btn-primary');
                 if (button && button.textContent.includes('Consultar')) {
-                    console.log('[Inconsistencias] Clicking Consultar for:', caseNumber);
                     if (window.eprocUpdateHUDStatus) window.eprocUpdateHUDStatus('🖱️ Consultando...');
-
                     button.click();
-
-                    // If the page reloads (submit), this timeout dies. 
-                    // If it's AJAX, we transition to fixing after a short delay to allow 'processing' to appear
-                    setTimeout(() => {
-                        this.checkAndFix(queue, caseNumber);
-                    }, 1000);
-
+                    setTimeout(() => { this.checkAndFix(queue, caseNumber); }, 1000);
                 } else {
-                    console.error('[Inconsistencias] Button not found, reloading...');
                     window.location.reload();
                 }
             }, CONFIG.ACTION_DELAY_MS);
         },
 
         waitForTableLoad(callback, attempt = 0) {
-            // Update HUD status lightly if possible
             if (window.eprocUpdateHUDStatus && attempt % 5 === 0) {
                 window.eprocUpdateHUDStatus(`⏳ Aguardando tabela... (${attempt})`);
             }
-
-            // check for processing indicator
             const processing = document.querySelector('.dataTables_processing');
             const isProcessing = processing && processing.style.display !== 'none';
-
-            // check for headers (basic page structure)
-            const headers = document.querySelectorAll('.card-header');
-            const hasHeaders = headers.length > 0;
-
-            // check for rows
-            const rows = document.querySelectorAll('table tbody tr');
-            const hasRows = rows.length > 0;
-            const isEmpty = rows.length === 1 && rows[0].querySelector('.dataTables_empty');
-
-            // Ready if: Has headers, NOT processing, and (Has valid rows OR Is explicitly empty)
-            const isReady = hasHeaders && !isProcessing && (hasRows || isEmpty);
+            const headers  = document.querySelectorAll('.card-header');
+            const rows     = document.querySelectorAll('table tbody tr');
+            const isEmpty  = rows.length === 1 && rows[0].querySelector('.dataTables_empty');
+            const isReady  = headers.length > 0 && !isProcessing && (rows.length > 0 || isEmpty);
 
             if (isReady) {
-                // Stabilize: wait one more tick to ensure rendering is done
                 setTimeout(callback, 200);
             } else {
-                if (attempt > 40) { // ~20 seconds timeout (40 * 500ms)
-                    console.log('[Inconsistencias] Table wait timeout');
-                    callback(); // Proceed anyway, might fail but avoids infinite hang
-                    return;
-                }
-
-                setTimeout(() => {
-                    this.waitForTableLoad(callback, attempt + 1);
-                }, 500);
+                if (attempt > 40) { callback(); return; }
+                setTimeout(() => { this.waitForTableLoad(callback, attempt + 1); }, 500);
             }
         },
 
         checkAndFix(queue, caseNumber) {
-            // Wait for table to load/stabilize first
             this.waitForTableLoad(() => {
                 const analysis = analyzeDuplicates();
-
-                // Preserve the removed count from previous iterations
                 if (!queue.results[caseNumber]) {
                     queue.results[caseNumber] = { removed: 0, status: ResultType.PENDING };
                 }
                 const result = queue.results[caseNumber];
-
-                // Check if there's a red banner indicating duplicates exist
                 const hasRedBanner = !analysis.allGreen;
 
-                // Update HUD with progress
                 if (window.eprocUpdateHUDStatus) {
                     window.eprocUpdateHUDStatus(`🔍 Analisando: ${result.removed} removidos até agora...`);
                 }
 
                 if (analysis.hasDuplicates) {
-                    // Find and click a desativar link
                     for (const card of analysis.duplicateCards) {
                         const toRemove = findRowToRemove(card.rows);
                         if (toRemove) {
                             console.log('[Inconsistencias] Removing duplicate:', toRemove);
                             result.removed++;
                             queue.removedCount++;
-                            // Don't save entire queue to storage on every click to save I/O, unless critical
-
-                            // Update HUD
                             if (window.eprocUpdateHUDStatus) {
                                 window.eprocUpdateHUDStatus(`🗑️ Removendo: ${toRemove.descricao}...`);
                             }
-
-                            // Click the desativar link (AJAX - no page reload)
                             toRemove.link.click();
-
-                            // AJAX Handling: The table enters "processing" state.
-                            // We recurse into checkAndFix, which will start with waitForTableLoad.
-                            // Small delay to allow click to trigger processing state.
-                            setTimeout(() => {
-                                this.checkAndFix(queue, caseNumber);
-                            }, 1000);
+                            setTimeout(() => { this.checkAndFix(queue, caseNumber); }, 1000);
                             return;
                         }
                     }
-
-                    // Duplicates detected but no desativar link found - can't fix automatically
-                    console.log('[Inconsistencias] Duplicates found but no desativar link available');
                     if (result.removed > 0) {
-                        result.status = ResultType.FIXED;
+                        result.status  = ResultType.FIXED;
                         result.message = `${result.removed} duplicata(s) removida(s) (ainda restam duplicatas sem link)`;
                     } else {
-                        result.status = ResultType.ERROR;
+                        result.status  = ResultType.ERROR;
                         result.message = 'Duplicatas encontradas, mas sem botão desativar disponível';
                     }
                     this.finalizeCase(queue, caseNumber, result);
                     return;
                 }
 
-                // No more duplicates to remove - finalize this case
                 if (result.removed > 0) {
-                    result.status = ResultType.FIXED;
+                    result.status  = ResultType.FIXED;
                     result.message = `${result.removed} duplicata(s) removida(s)`;
                 } else if (hasRedBanner) {
-                    result.status = ResultType.ERROR;
+                    result.status  = ResultType.ERROR;
                     result.message = 'Banner vermelho presente, mas não foi possível corrigir automaticamente';
                 } else {
-                    result.status = ResultType.OK;
+                    result.status  = ResultType.OK;
                     result.message = 'Sem duplicatas';
                 }
-
                 this.finalizeCase(queue, caseNumber, result);
-
-            }); // end waitForTableLoad callback
+            });
         },
 
         finalizeCase(queue, caseNumber, result) {
-            // Log this case
             console.log('[Inconsistencias] Finalizing case:', caseNumber, result);
-
-            // Update HUD
-            if (window.eprocUpdateHUDStatus) {
-                window.eprocUpdateHUDStatus(`✅ Finalizado: ${result.status}`);
-            }
+            if (window.eprocUpdateHUDStatus) window.eprocUpdateHUDStatus(`✅ Finalizado: ${result.status}`);
 
             Storage.addEntry({
-                caseNumber: caseNumber,
+                caseNumber,
                 timestamp: Date.now(),
-                status: result.status,
-                message: result.message,
-                removed: result.removed || 0
+                status:    result.status,
+                message:   result.message,
+                removed:   result.removed || 0
             });
 
-            // Move to next case
             queue.currentIndex++;
             queue.currentStep = 'consultar';
-
-            // IMPORTANT: Save queue state now so if we reload we pick up correctly
             Storage.saveQueue(queue);
 
             if (queue.currentIndex >= queue.cases.length) {
-                // All done!
                 Storage.clearQueue();
                 console.log('[Inconsistencias] Batch complete!');
-                if (window.eprocUpdateHUDStatus) {
-                    window.eprocUpdateHUDStatus(`🎉 Lote finalizado! Total processado: ${queue.cases.length}`);
-                }
-                // Force UI update to show "Finish" state (enable start button etc)
-                // We need to trigger the UI update in the HUD
+                if (window.eprocUpdateHUDStatus) window.eprocUpdateHUDStatus(`🎉 Lote finalizado! Total: ${queue.cases.length}`);
                 if (window.eprocRefreshHUD) window.eprocRefreshHUD();
-
-                // Click Voltar one last time to reset state
-                console.log('[Inconsistencias] Batch done, resetting state with Voltar...');
                 clickVoltar();
                 return;
             }
-
-
-            // Click Voltar for next case
-            console.log('[Inconsistencias] Case done, clicking Voltar for next case...');
             clickVoltar();
         },
 
         executeNext(queue) {
-            const currentCase = queue.cases[queue.currentIndex];
-            // Also refresh HUD on start of next execution
             if (window.eprocRefreshHUD) window.eprocRefreshHUD();
-
             if (queue.currentStep === 'consultar') {
-                this.doConsultar(queue, currentCase);
+                this.doConsultar(queue, queue.cases[queue.currentIndex]);
             } else {
-                this.checkAndFix(queue, currentCase);
+                this.checkAndFix(queue, queue.cases[queue.currentIndex]);
             }
         },
 
@@ -534,240 +348,137 @@
             const queue = Storage.loadQueue();
             if (!queue) return null;
             return {
-                current: queue.currentIndex + 1,
-                total: queue.cases.length,
+                current:     queue.currentIndex + 1,
+                total:       queue.cases.length,
                 currentCase: queue.cases[queue.currentIndex],
-                step: queue.currentStep,
-                removed: queue.removedCount
+                step:        queue.currentStep,
+                removed:     queue.removedCount
             };
         }
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // HUD COMPONENT
+    // HUD COMPONENT — usa Bootstrap nativo do eProc
     // ═══════════════════════════════════════════════════════════════════════════
+    function injetarEstilosHUD() {
+        if (document.getElementById('eproc-incons-styles')) return;
+        const s = document.createElement('style');
+        s.id = 'eproc-incons-styles';
+        s.textContent = `
+            #eproc-incons-hud { margin-bottom: 16px; }
+            #eproc-incons-hud .incons-card-header {
+                background: #0887b2;
+                color: #fff;
+                padding: 6px 12px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-radius: 4px 4px 0 0;
+                font-weight: bold;
+                font-size: 13px;
+            }
+            #eproc-incons-hud .incons-section-label {
+                display: block;
+                font-size: 11px;
+                font-weight: bold;
+                text-transform: uppercase;
+                color: #0887b2;
+                margin-bottom: 4px;
+            }
+            #eproc-incons-body.collapsed { display: none !important; }
+            #eproc-incons-log {
+                height: 100px;
+                overflow-y: auto;
+                font-size: 11px;
+            }
+            #eproc-incons-hud .incons-log-entry {
+                padding: 2px 0;
+                border-bottom: 1px solid #f0f0f0;
+                display: flex;
+                gap: 6px;
+                align-items: baseline;
+                font-size: 11px;
+            }
+            #eproc-incons-hud .incons-log-entry:last-child { border-bottom: none; }
+            #eproc-incons-hud .incons-log-entry.error .incons-entry-details { color: #a94442; }
+            #eproc-incons-hud .incons-entry-time    { color: #999; white-space: nowrap; }
+            #eproc-incons-hud .incons-entry-case    { font-family: Consolas, monospace; font-weight: bold; color: #222; white-space: nowrap; }
+            #eproc-incons-hud .incons-entry-details { color: #555; flex: 1; }
+            #eproc-incons-hud .incons-log-empty     { color: #bbb; font-size: 11px; text-align: center; padding: 28px 0; }
+            #eproc-incons-count { font-size: 10px; color: #888; text-align: right; margin-top: 2px; }
+            #eproc-incons-hud .processing-indicator { animation: incons-pulse 1.5s infinite; }
+            @keyframes incons-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        `;
+        (document.head || document.documentElement).appendChild(s);
+    }
+
     function createHUD() {
-        const shadowHost = document.createElement('div');
-        Object.assign(shadowHost.style, { display: 'block', width: '100%', marginBottom: '16px' });
-        const shadow = shadowHost.attachShadow({ mode: 'open' });
-        shadow.innerHTML = `
-            <style>
-                :host { display: block; width: 100%; }
-                *, *::before, *::after { box-sizing: border-box; font-family: Arial, sans-serif; }
+        injetarEstilosHUD();
 
-                #inconsistencias-hud {
-                    background: #fff;
-                    border: 1px solid #CBD6E5;
-                    border-radius: 2px;
-                    font-size: 13px;
-                    color: #333;
-                }
-
-                #hud-header {
-                    background: #2168B5;
-                    color: #fff;
-                    padding: 0 12px;
-                    height: 34px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    font-weight: bold;
-                    font-size: 13px;
-                }
-
-                #inconsistencias-hud-toggle {
-                    background: none;
-                    border: 1px solid rgba(255,255,255,0.5);
-                    color: #fff;
-                    width: 20px;
-                    height: 20px;
-                    border-radius: 2px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    padding: 0;
-                    line-height: 1;
-                }
-
-                #inconsistencias-hud-body { padding: 8px; }
-                #inconsistencias-hud-body.collapsed { display: none; }
-
-                #hud-columns {
-                    display: flex;
-                    gap: 8px;
-                    margin-bottom: 8px;
-                }
-
-                #hud-left, #hud-right { flex: 1; }
-
-                .section-title {
-                    color: #2168B5;
-                    font-size: 11px;
-                    font-weight: bold;
-                    text-transform: uppercase;
-                    margin-bottom: 4px;
-                    display: block;
-                }
-
-                .section-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 4px;
-                }
-
-                .section-actions { display: flex; gap: 4px; }
-
-                #inconsistencias-input {
-                    width: 100%;
-                    height: 100px;
-                    background: #fff;
-                    border: 1px solid #ccc;
-                    padding: 6px;
-                    font-family: Consolas, monospace;
-                    font-size: 11px;
-                    resize: vertical;
-                    color: #333;
-                    display: block;
-                }
-
-                #inconsistencias-input:focus { outline: none; border-color: #2168B5; }
-
-                #inconsistencias-input::placeholder { color: #999; }
-
-                #inconsistencias-log {
-                    height: 100px;
-                    overflow-y: auto;
-                    background: #fff;
-                    border: 1px solid #ccc;
-                    padding: 4px 6px;
-                    font-size: 11px;
-                }
-
-                .log-empty { color: #bbb; font-size: 11px; text-align: center; padding: 28px 0; }
-
-                .incons-log-entry {
-                    padding: 3px 0;
-                    border-bottom: 1px solid #f0f0f0;
-                    font-size: 11px;
-                    display: flex;
-                    gap: 6px;
-                    align-items: baseline;
-                }
-                .incons-log-entry:last-child { border-bottom: none; }
-                .incons-log-entry.error .incons-log-entry-details { color: #a94442; }
-
-                .incons-log-entry-time { color: #999; white-space: nowrap; }
-                .incons-log-entry-case { font-family: Consolas, monospace; font-weight: bold; color: #222; white-space: nowrap; }
-                .incons-log-entry-details { color: #555; flex: 1; }
-
-                #inconsistencias-count { font-size: 10px; color: #888; text-align: right; margin-top: 2px; }
-
-                .btn-action {
-                    background: #F8F8F8;
-                    border: 1px solid #ccc;
-                    color: #333;
-                    padding: 2px 8px;
-                    font-size: 11px;
-                    border-radius: 2px;
-                    cursor: pointer;
-                    white-space: nowrap;
-                }
-                .btn-action:hover { background: #e8e8e8; }
-
-                #hud-controls { display: flex; gap: 8px; margin-bottom: 8px; }
-
-                .incons-btn {
-                    height: 30px;
-                    padding: 0 16px;
-                    font-size: 12px;
-                    font-weight: bold;
-                    border-radius: 2px;
-                    cursor: pointer;
-                    min-width: 90px;
-                }
-                .incons-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-                .incons-btn-primary { background: #337AB7; border: 1px solid #2E6DA4; color: #fff; }
-                .incons-btn-primary:hover:not(:disabled) { background: #286090; }
-
-                .incons-btn-danger { background: #F8F8F8; border: 1px solid #ccc; color: #333; }
-                .incons-btn-danger:hover:not(:disabled) { background: #e8e8e8; }
-
-                .incons-btn-secondary { background: #F8F8F8; border: 1px solid #ccc; color: #333; }
-                .incons-btn-secondary:hover:not(:disabled) { background: #e8e8e8; }
-
-                .alert-info {
-                    background: #E7F3FE;
-                    border: 1px solid #B3D7FF;
-                    color: #31708F;
-                    min-height: 28px;
-                    display: flex;
-                    align-items: center;
-                    padding: 4px 10px;
-                    font-size: 12px;
-                    border-radius: 2px;
-                    gap: 6px;
-                }
-
-                .processing-indicator { animation: pulse 1.5s infinite; }
-                @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-            </style>
-            <div id="inconsistencias-hud">
-              <div id="hud-header">
-                <span>Inconsistências — Correção em Lote</span>
-                <button id="inconsistencias-hud-toggle" title="Minimizar">−</button>
-              </div>
-              <div id="inconsistencias-hud-body">
-                <div id="hud-columns">
-                  <div id="hud-left">
-                    <span class="section-title">PROCESSOS</span>
-                    <textarea id="inconsistencias-input" placeholder="Cole números de processo aqui (um por linha)&#10;&#10;Ex:&#10;0000268-76.2025.8.26.0358"></textarea>
-                  </div>
-                  <div id="hud-right">
-                    <div class="section-header">
-                      <span class="section-title">HISTÓRICO</span>
-                      <div class="section-actions">
-                        <button id="inconsistencias-export" class="btn-action">↓ Exportar</button>
-                        <button id="inconsistencias-clear" class="btn-action">🗑 Limpar</button>
-                      </div>
+        const wrapper = document.createElement('div');
+        wrapper.id = 'eproc-incons-hud';
+        wrapper.innerHTML = `
+            <div class="card" style="border-color:#CBD6E5">
+                <div class="incons-card-header">
+                    <span>Inconsistências — Correção em Lote</span>
+                    <button id="incons-toggle" class="btn btn-sm" style="color:white;border:1px solid rgba(255,255,255,0.5);padding:1px 7px;line-height:1.4">−</button>
+                </div>
+                <div class="card-body p-2" id="incons-body">
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <span class="incons-section-label">Processos</span>
+                            <textarea id="incons-input"
+                                class="form-control form-control-sm"
+                                rows="5"
+                                placeholder="Cole números de processo aqui (um por linha)&#10;&#10;Ex:&#10;0000268-76.2025.8.26.0358"
+                                style="font-family:Consolas,monospace;resize:vertical"></textarea>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="incons-section-label mb-0">Histórico</span>
+                                <div>
+                                    <button id="incons-export" class="btn btn-sm btn-outline-secondary mr-1">↓ Exportar</button>
+                                    <button id="incons-clear"  class="btn btn-sm btn-outline-secondary">🗑 Limpar</button>
+                                </div>
+                            </div>
+                            <div id="eproc-incons-log" class="border rounded p-1 bg-white">
+                                <div class="incons-log-empty">Nenhum registro ainda</div>
+                            </div>
+                            <div id="eproc-incons-count"></div>
+                        </div>
                     </div>
-                    <div id="inconsistencias-log"><div class="log-empty">Nenhum registro ainda</div></div>
-                    <div id="inconsistencias-count"></div>
-                  </div>
+                    <div class="mb-2">
+                        <button id="incons-start" class="btn btn-sm btn-primary mr-2">▶ Iniciar</button>
+                        <button id="incons-stop"  class="btn btn-sm btn-danger" disabled>■ Parar</button>
+                    </div>
+                    <div id="incons-status" class="alert alert-info p-2 mb-0" style="font-size:12px">
+                        ℹ Aguardando entrada...
+                    </div>
                 </div>
-                <div id="hud-controls">
-                  <button id="inconsistencias-start" class="incons-btn incons-btn-primary">▶ Iniciar</button>
-                  <button id="inconsistencias-stop" class="incons-btn incons-btn-danger" disabled>■ Parar</button>
-                </div>
-                <div id="inconsistencias-status" class="alert-info">ℹ Aguardando entrada...</div>
-              </div>
             </div>
         `;
-        const hud = shadow.querySelector('#inconsistencias-hud');
 
         const container = document.querySelector('#divInfraAreaTelaD')
             || document.querySelector('#divInfraConteudoForm')
             || document.querySelector('#divInfraConteudo')
             || document.querySelector('.infraAreaTelaD')
             || document.body;
-        container.insertBefore(shadowHost, container.firstChild);
+        container.insertBefore(wrapper, container.firstChild);
 
-        // Elements
-        const toggle = hud.querySelector('#inconsistencias-hud-toggle');
-        const body = hud.querySelector('#inconsistencias-hud-body');
-        const input = hud.querySelector('#inconsistencias-input');
-        const startBtn = hud.querySelector('#inconsistencias-start');
-        const stopBtn = hud.querySelector('#inconsistencias-stop');
-        const status = hud.querySelector('#inconsistencias-status');
-        const log = hud.querySelector('#inconsistencias-log');
-        const exportBtn = hud.querySelector('#inconsistencias-export');
-        const clearBtn = hud.querySelector('#inconsistencias-clear');
-        const countDiv = hud.querySelector('#inconsistencias-count');
+        // Elementos
+        const toggle    = wrapper.querySelector('#incons-toggle');
+        const body      = wrapper.querySelector('#incons-body');
+        const input     = wrapper.querySelector('#incons-input');
+        const startBtn  = wrapper.querySelector('#incons-start');
+        const stopBtn   = wrapper.querySelector('#incons-stop');
+        const status    = wrapper.querySelector('#incons-status');
+        const log       = wrapper.querySelector('#eproc-incons-log');
+        const exportBtn = wrapper.querySelector('#incons-export');
+        const clearBtn  = wrapper.querySelector('#incons-clear');
+        const countDiv  = wrapper.querySelector('#eproc-incons-count');
 
-        // Expose updateStatus globally for generic access if needed
-        window.eprocUpdateHUDStatus = (text) => {
-            status.innerHTML = text;
-        };
+        // Expõe callbacks globais para o engine
+        window.eprocUpdateHUDStatus = (text) => { status.innerHTML = text; };
         window.eprocRefreshHUD = updateUI;
 
         // Toggle collapse
@@ -776,103 +487,89 @@
             toggle.textContent = body.classList.contains('collapsed') ? '+' : '−';
         });
 
-        // Filter input: only digits and newlines allowed
+        // Filtro de input: apenas dígitos e quebras de linha
         input.addEventListener('input', () => {
-            const pos = input.selectionStart;
+            const pos    = input.selectionStart;
             const before = input.value.length;
-            input.value = input.value.replace(/[^\d\n]/g, '');
-            const after = input.value.length;
+            input.value  = input.value.replace(/[^\d\n]/g, '');
+            const after  = input.value.length;
             input.selectionStart = input.selectionEnd = pos - (before - after);
         });
 
-        // Render log
+        // Renderiza log
         function renderLog() {
             const entries = Storage.cleanup();
             if (entries.length === 0) {
-                log.innerHTML = '<div class="log-empty">Nenhum registro ainda</div>';
+                log.innerHTML = '<div class="incons-log-empty">Nenhum registro ainda</div>';
+                countDiv.textContent = '';
                 return;
             }
             log.innerHTML = '';
-
             entries.slice(0, 50).forEach(entry => {
-                const div = document.createElement('div');
+                const div  = document.createElement('div');
                 div.className = `incons-log-entry ${entry.status}`;
-
                 const date = new Date(entry.timestamp);
-                const timeStr = date.toLocaleString('pt-BR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-
+                const timeStr = date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
                 div.innerHTML = `
-                    <span class="incons-log-entry-time">${timeStr}</span>
-                    <span class="incons-log-entry-case">${entry.caseNumber}</span>
-                    <span class="incons-log-entry-details">${entry.message}</span>
+                    <span class="incons-entry-time">${timeStr}</span>
+                    <span class="incons-entry-case">${entry.caseNumber}</span>
+                    <span class="incons-entry-details">${entry.message}</span>
                 `;
                 log.appendChild(div);
             });
-
             countDiv.textContent = `${entries.length} registro(s) nos últimos 7 dias`;
         }
 
-        // Update UI based on queue state
+        // Atualiza UI conforme estado da fila
         function updateUI() {
             const progress = Automation.getProgress();
             if (progress) {
                 startBtn.disabled = true;
-                stopBtn.disabled = false;
-                input.disabled = true;
+                stopBtn.disabled  = false;
+                input.disabled    = true;
                 const utils = typeof EprocUtils !== 'undefined' ? EprocUtils : null;
                 const barHTML = utils
                     ? utils.progressBarHTML(progress.current, progress.total)
-                    : `<div style="font-size:11px;color:#a0aec0">${progress.current}/${progress.total}</div>`;
+                    : `<span style="font-size:11px;color:#666">${progress.current}/${progress.total}</span>`;
                 status.innerHTML =
-                    `<span class="processing-indicator">⏳ Processando ${progress.current}/${progress.total}</span>` +
+                    `<span class="processing-indicator">⏳ Processando ${progress.current}/${progress.total}</span> ` +
                     barHTML +
-                    `<strong>${progress.currentCase}</strong><br>` +
+                    `<br><strong>${progress.currentCase}</strong> — ` +
                     `Removidas: ${progress.removed} | Etapa: ${progress.step}`;
             } else {
                 startBtn.disabled = false;
-                stopBtn.disabled = true;
-                input.disabled = false;
+                stopBtn.disabled  = true;
+                input.disabled    = false;
             }
         }
 
-        // Start automation
+        // Iniciar
         startBtn.addEventListener('click', () => {
             const cases = Automation.parseInput(input.value);
             if (cases.length === 0) {
                 status.textContent = '⚠️ Nenhum número válido encontrado';
                 return;
             }
-
             status.textContent = `🚀 Iniciando ${cases.length} processo(s)...`;
             Automation.startBatch(cases);
         });
 
-        // Stop automation
+        // Parar
         stopBtn.addEventListener('click', () => {
             Automation.stop();
             startBtn.disabled = false;
-            stopBtn.disabled = true;
-            input.disabled = false;
+            stopBtn.disabled  = true;
+            input.disabled    = false;
             status.textContent = '⏹️ Interrompido pelo usuário';
         });
 
-        // Export log
+        // Exportar CSV
         exportBtn.addEventListener('click', () => {
             const entries = Storage.loadLog();
-            if (entries.length === 0) {
-                alert('Nenhum registro para exportar');
-                return;
-            }
+            if (entries.length === 0) { alert('Nenhum registro para exportar'); return; }
 
-            const utils = typeof EprocUtils !== 'undefined' ? EprocUtils : null;
+            const utils   = typeof EprocUtils !== 'undefined' ? EprocUtils : null;
             const dateTag = new Date().toISOString().slice(0, 10);
-
-            // CSV export
             const csvRows = [
                 ['Processo', 'Data', 'Status', 'Mensagem', 'Removidas'],
                 ...entries.map(e => [
@@ -883,22 +580,20 @@
                     e.removed || 0
                 ])
             ];
-
             if (utils) {
                 utils.downloadCSV(csvRows, `inconsistencias_${dateTag}.csv`);
             } else {
-                // Fallback manual se shared/ não carregou
-                const escape = cell => `"${String(cell).replace(/"/g, '""')}"`;
+                const escape  = cell => `"${String(cell).replace(/"/g, '""')}"`;
                 const content = csvRows.map(r => r.map(escape).join(',')).join('\r\n');
-                const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
-                const url  = URL.createObjectURL(blob);
-                const a    = document.createElement('a');
+                const blob    = new Blob([content], { type: 'text/csv;charset=utf-8' });
+                const url     = URL.createObjectURL(blob);
+                const a       = document.createElement('a');
                 a.href = url; a.download = `inconsistencias_${dateTag}.csv`; a.click();
                 URL.revokeObjectURL(url);
             }
         });
 
-        // Clear log
+        // Limpar log
         clearBtn.addEventListener('click', () => {
             if (confirm('Limpar todos os registros?')) {
                 Storage.clearLog();
@@ -907,7 +602,6 @@
             }
         });
 
-        // Initial render
         renderLog();
         updateUI();
 
@@ -915,13 +609,11 @@
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // INITIALIZATION (wait for DOM since we run at document-start)
+    // INITIALIZATION
     // ═══════════════════════════════════════════════════════════════════════════
     function init() {
-        // FIRST: Check if we need to resume - this may redirect
         const resumed = Automation.resumeIfNeeded();
 
-        // Only show HUD on the inconsistencias page
         if (isInconsistenciasPage()) {
             const hudControls = createHUD();
             hudControls.renderLog();
@@ -932,7 +624,6 @@
         }
     }
 
-    // Wait for DOM to be ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
